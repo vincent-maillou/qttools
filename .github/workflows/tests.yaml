@@ -6,13 +6,8 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        mpi: [ 'mpich', 'openmpi' ]
-    name: Test using ${{ matrix.mpi }} 
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
@@ -23,7 +18,7 @@ jobs:
         
       - name: Run tests
         run: |
-          pytest --cov=src/quantum_transport_toolbox --cov-report=term --cov-report=xml tests/
+          pytest --cov=src/quantumtransporttoolbox --cov-report=term --cov-report=xml tests/
           mpiexec -n 2 pytest --with-mpi tests/
       
       - name: Code Coverage Summary
@@ -49,6 +44,6 @@ jobs:
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: vincent-maillou/QuantumTransportToolbox
+          slug: vincent-maillou/quantumtransporttoolbox
 
 
