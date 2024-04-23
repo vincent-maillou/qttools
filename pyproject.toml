@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "quantumtransporttoolbox"
+name = "qttools"
 authors = [
     { name = "Anders Winka", email = "awinka@iis.ee.ethz.ch" },
     { name = "Leonard Deuschle", email = "dleonard@iis.ee.ethz.ch" },
@@ -36,10 +36,10 @@ dependencies = [
 ]
 
 [project.urls]
-Code = "https://github.com/vincent-maillou/quantumtransporttoolbox"
+Code = "https://github.com/vincent-maillou/qttools"
 
 [tool.setuptools.dynamic]
-version = { attr = "quantumtransporttoolbox.__about__.__version__" }
+version = { attr = "qttools.__about__.__version__" }
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
