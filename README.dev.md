@@ -14,6 +14,7 @@
 	- `__iadd__(self, other)`
 	- `__imul__(self, other)`
 	- `__neg__(self)`
+	- `__matmul__`
 
 
 ## `Solver`
@@ -39,3 +40,15 @@ g_surface = obc(a_ii, a_ij, a_ji, contact="left")
 - `fftconvolve(a: DBSparse, b: DBSparse, out=None) -> None | DBSparse`
 - `fftcorrelate(a: DBSparse, b: DBSparse) -> None | DBSparse`
 
+
+## Poisson
+- `__call__(self, density)`
+
+Example:
+```python
+if config.poisson.method == "orbital":
+	poisson_solver = OrbitalPoisson(config.poisson)
+if config.poisson.method == "point-charge":
+	poisson_solver = PointChargePoisson(config.poisson)
+potential = poisson_solver(density)
+```
