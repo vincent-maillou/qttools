@@ -13,7 +13,7 @@
 	- `distributed_transpose(self)`
 	- `__iadd__(self, other) -> self`
 	- `__imul__(self, other) -> self`
-	- `__ineg__(self) -> self`
+	- `__neg__(self) -> self`
 	- `__matmul__(self, other) -> DBSparse`
 
 ## Green's function solver
