@@ -5,12 +5,12 @@
 	- `from_sparray(self, a: sp.sparray, blocksizes: np.ndarray, stackshape=(1,), densify_blocks=None, pinned=False) -> None`
 	- `to_dense(self) -> np.ndarray`
 	- `zeros_like(self, a: DBSparse) -> DBSparse`
-	- `get_block(self, i: int, j: int, dense: bool=False) -> sp.sparray | np.ndarray`
-	- `set_block(self, i: int, j: int, block: np.ndarray) -> None`
 	- `block_diagonal(self, offset: int=0, dense: bool=False) -> list[sparray] | list[np.ndarray]`
 	- `diagonal(self) -> np.ndarray`
 	- `local_transpose(self, copy=False)`
 	- `distributed_transpose(self)`
+	- `__setitem__(self, idx: tuple[int, int], block: np.ndarray) -> None`
+	- `__getitem__(self, idx: tuple[int, int]) -> np.ndarray | sparray`
 	- `__iadd__(self, other) -> self`
 	- `__imul__(self, other) -> self`
 	- `__neg__(self) -> self`
