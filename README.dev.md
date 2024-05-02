@@ -20,6 +20,7 @@
     - `stack_shape(self) -> np.uint`
     - `shape(self) -> np.uint`
     - `nzz(self) -> np.uint`
+	- `return_dense(self) -> bool`
 
 ## Green's function solver
 - `Solver`
