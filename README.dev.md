@@ -15,6 +15,11 @@
 	- `__imul__(self, other) -> self`
 	- `__neg__(self) -> self`
 	- `__matmul__(self, other) -> DBSparse`
+    - `num_blocks(self) -> np.uint`
+    - `block_offsets(self) -> np.uint`
+    - `stack_shape(self) -> np.uint`
+    - `shape(self) -> np.uint`
+    - `nzz(self) -> np.uint`
 
 ## Green's function solver
 - `Solver`
