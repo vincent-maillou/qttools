@@ -5,11 +5,25 @@ import numpy.lib.stride_tricks as npst
 from mpi4py import MPI
 from mpi4py.MPI import COMM_WORLD as comm
 
+from qttools.utils.mpi_utils import get_num_elements_per_section
+
 
 class MPIBuffer:
-    def __init__(self, data):
-        self.data = np.ascontiguousarray(data)
-        self.shape = data.shape
+    def __init__(self, data, global_shape):
+        self.global_shape = global_shape
+        local_sizes_rows = get_num_elements_per_section(global_shape[0])
+        local_sizes_cols = get_num_elements_per_section(global_shape[1])
+        local_offsets_cols = np.cumsum([0] + local_sizes_cols)
+
+        self.shape = max(local_sizes_rows), max(local_sizes_cols) * comm.size
+        self.data = np.zeros(self.shape, dtype=data.dtype)
+
+        for i in range(comm.size):
+            self.data[
+                : data.shape[0],
+                i * max(local_sizes_cols) : i * max(local_sizes_cols)
+                + local_sizes_cols[i],
+            ] = data[:, local_offsets_cols[i] : local_offsets_cols[i + 1]]
 
     def dtranspose_forward(self):
         """Transpose the data in a distributed fashion."""
@@ -44,12 +58,8 @@ class MPIBuffer:
 
 
 def main():
-    num_cols = 7
-    num_rows = 10
-    if not num_rows % comm.size == 0:
-        raise ValueError("Number of rows must be divisible by number of ranks")
-    if not num_cols % comm.size == 0:
-        raise ValueError("Number of cols must be divisible by number of ranks")
+    num_rows = 20
+    num_cols = 10
 
     data = (
         np.arange(num_rows * num_cols).reshape(num_rows, num_cols)
@@ -63,12 +73,10 @@ def main():
     comm.barrier()
 
     mpi_buffer = MPIBuffer(
-        data[
-            comm.rank
-            * (data.shape[0] // comm.size) : (comm.rank + 1)
-            * (data.shape[0] // comm.size)
-        ],
+        np.array_split(data, comm.size, axis=0)[comm.rank],
+        (num_rows, num_cols),
     )
+
     print(f"Data on rank {comm.rank}\n", mpi_buffer.data)
 
     mpi_buffer.dtranspose_forward()

@@ -1,3 +1,5 @@
+# Copyright 2023-2024 ETH Zurich and the QuaTrEx authors. All rights reserved.
+
 import numpy as np
 from mpi4py import MPI
 from mpi4py.MPI import COMM_WORLD as comm
@@ -28,46 +30,19 @@ class MPIBuffer:
             dtype=np.int32,
         )
 
-        packet_dtype = from_numpy_dtype(self.data.dtype).Create_vector(
-            count=self.energies.size,
-            blocklength=self.nnz // comm.size,
-            stride=self.nnz,
+        subarray_dtype = from_numpy_dtype(self.data.dtype).Create_subarray(
+            sizes=(num_energies // comm.size, self.nnz),
+            subsizes=(num_energies // comm.size, self.nnz // comm.size),
+            starts=(0, 0),
         )
-        packet_dtype.Commit()
 
-        block_type = MPI.Datatype.Create_struct(
-            blocklengths=[1] * comm.size,
-            displacements=[i * self.nnz // comm.size for i in range(comm.size)],
-            datatypes=[packet_dtype] * comm.size,
-        )
-        block_type.Commit()
-
-        self.packet_dtype = packet_dtype
+        self.subarray_dtype = subarray_dtype.Commit()
 
     def dtranspose(self):
-        # self.data = np.ascontiguousarray(
-        #     npst.as_strided(
-        #         self.data,
-        #         shape=(comm.size, self.energies.size, self.nnz // comm.size),
-        #         strides=(
-        #             (self.nnz // comm.size) * self.data.itemsize,
-        #             self.nnz * self.data.itemsize,
-        #             self.data.itemsize,
-        #         ),
-        #     )
-        # )
-        # print(comm.rank, (comm.size - 1 - comm.rank) * (self.nnz // comm.size))
-        # print(comm.rank, ((comm.size - comm.rank)) * (self.nnz // comm.size))
-        comm.Alltoallv(MPI.IN_PLACE, (self.data, self.packet_dtype))
+        comm.Alltoall(MPI.IN_PLACE, (self.data, 2, self.subarray_dtype))
 
         self.energies = self.all_energies
         self.nnz = self.nnz // comm.size
-
-        # self.data = npst.as_strided(
-        #     self.data,
-        #     shape=(self.energies.size, self.nnz),
-        #     strides=(self.nnz * self.data.itemsize, self.data.itemsize),
-        # )
 
         self.data = self.data.reshape(-1, self.nnz)
 
@@ -94,13 +69,80 @@ def main():
     comm.barrier()
 
     mpi_buffer = MPIBuffer(energies, data)
+    mpi_buffer.dtranspose()
+    print(comm.rank, mpi_buffer.energies)
+    print(comm.rank, mpi_buffer.data)
+
     # print(comm.rank, mpi_buffer.energies)
     # print(comm.rank, mpi_buffer.data)
 
-    mpi_buffer.dtranspose()
-    # print(comm.rank, mpi_buffer.energies)
-    # print(comm.rank, mpi_buffer.data)
+
+def _blockdist(N, size, rank):
+    q, r = divmod(N, size)
+    r = 0
+    n = q
+    s = rank * q + min(rank, r)
+    return (n, s)
+
+
+def _subarraytypes(comm, shape, axis, subshape, dtype):
+    N = shape[axis]
+    datatype = MPI._typedict[dtype.char]
+    sizes = list(subshape)
+    subsizes = sizes[:]
+    substarts = [0] * len(sizes)
+    datatypes = []
+    for i in range(comm.size):
+        n, s = _blockdist(N, comm.size, i)
+        subsizes[axis] = n
+        substarts[axis] = s
+        print(sizes, subsizes, substarts)
+        newtype = datatype.Create_subarray(sizes, subsizes, substarts).Commit()
+        datatypes.append(newtype)
+    return tuple(datatypes)
+
+
+def test():
+    num_energies = 12
+    nnz = 8
+
+    data = (
+        np.arange(num_energies * nnz).reshape(num_energies, nnz)
+        if comm.rank == 0
+        else None
+    )
+    data = comm.bcast(data, root=0)
+    print(data) if comm.rank == 0 else None
+    comm.barrier()
+
+    data = np.ascontiguousarray(
+        data[
+            comm.rank
+            * (num_energies // comm.size) : (comm.rank + 1)
+            * (num_energies // comm.size)
+        ],
+        dtype=np.int32,
+    )
+    energy_types = _subarraytypes(
+        comm, (num_energies, nnz), 0, (num_energies, nnz // comm.size), data.dtype
+    )
+    nnz_types = _subarraytypes(
+        comm, (num_energies, nnz), 1, (num_energies // comm.size, nnz), data.dtype
+    )
+    counts_displs = ([1] * comm.size, [0] * comm.size)
+
+    print(comm.rank, data)
+
+    comm.Alltoallw(
+        [data, counts_displs, nnz_types], [data, counts_displs, energy_types]
+    )
+
+    print(comm.rank, data.reshape(-1, nnz // comm.size))
+
+    [dtype.Free() for dtype in energy_types]
+    [dtype.Free() for dtype in nnz_types]
 
 
 if __name__ == "__main__":
-    main()
+    test()
+    # main()
