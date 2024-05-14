@@ -31,15 +31,15 @@ dbcsr = DBCSR.from_sparray(
 
 # print(f"DBCSR data on rank {comm.rank}:\n", dbcsr.data)
 
+print(comm.rank, dbcsr._padded_data)
 print(comm.rank, dbcsr.data)
-print(comm.rank, dbcsr.masked_data)
 print(comm.rank, dbcsr._distribution_state)
 t0 = time.perf_counter()
 
 dbcsr.dtranspose()
 
+print(comm.rank, dbcsr._padded_data)
 print(comm.rank, dbcsr.data)
-print(comm.rank, dbcsr.masked_data)
 print(comm.rank, dbcsr._distribution_state)
 
 t1 = time.perf_counter()
