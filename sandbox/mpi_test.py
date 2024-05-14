@@ -1,4 +1,4 @@
-# Copyright 2023-2024 ETH Zurich and the QuaTrEx authors. All rights reserved.
+# Copyright 2023-2024 ETH Zurich and Quantum Transport Toolbox authors.
 
 import numpy as np
 from mpi4py import MPI
