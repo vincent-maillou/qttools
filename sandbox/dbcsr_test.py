@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sps
 from mpi4py.MPI import COMM_WORLD as comm
 
-from qttools.datastructures.dbcsr import DBCSR
+from qttools.datastructures.dsbcsr import DSBCSR
 from qttools.utils.mpi_utils import get_num_elements_per_section
 
 # np.random.seed(1)
@@ -25,7 +25,7 @@ else:
 
 coo = comm.bcast(coo, root=0)
 
-dbcsr = DBCSR.from_sparray(
+dbcsr = DSBCSR.from_sparray(
     coo,
     [1] * 4,
     stack_shape=(get_num_elements_per_section(GLOBAL_STACK_SHAPE[0])[0][comm.rank],),
