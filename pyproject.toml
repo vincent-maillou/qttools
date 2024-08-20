@@ -25,7 +25,7 @@ classifiers = [
 ]
 keywords = ["Nano-TCAD", "Quantum Transport", "Algorithms toolbox"]
 dynamic = ["version"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "numpy",
     "scipy",
