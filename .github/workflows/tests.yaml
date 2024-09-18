@@ -1,23 +1,34 @@
 # Copyright 2023-2024 ETH Zurich and Quantum Transport Toolbox authors.
-name: Run Tests and Determine Code Coverage
+name: Run Basic Tests and Determine Code Coverage
 
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
-  tests:
+  test-cov:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: "3.11"
-
-      - name: Install dependencies
+          channels: anaconda,conda-forge,defaults
+          channel-priority: true
+          activate-environment: quatrex
+          environment-file: environment.yml
+      
+      - name: Install qttools without Dependencies
         run: |
-          pip install -e .
+          pip install --no-deps --editable .
         
-      - name: Run tests
+      - name: Run MPI and Normal Tests and Determine Coverage
         run: |
+          mpiexec -np 3 pytest --only-mpi tests/
           pytest --cov=src/qttools --cov-report=term --cov-report=xml tests/
       
       - name: Code Coverage Summary
@@ -38,11 +49,3 @@ jobs:
         with:
           recreate: true
           path: code-coverage-results.md
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.0.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: vincent-maillou/qttools
-
-
