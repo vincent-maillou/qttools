@@ -13,6 +13,13 @@ format:
 lint:
 	ruff check
 
-# Runs all tests.
-test:
+# Runs all non-MPI tests and determines coverage.
+test-cov:
 	pytest --cov=src/qttools --cov-report=term --cov-report=xml tests/
+
+# Runs all MPI-only tests with a given number of MPI ranks.
+test-mpi ranks="3":
+	mpiexec -np {{ranks}} pytest --only-mpi tests/
+
+# Runs all tests.
+test: test-mpi test-cov
