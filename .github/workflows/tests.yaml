@@ -9,8 +9,6 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
-    permissions:
-      pull-requests: write
 
     steps:
       - name: Checkout Repository
@@ -48,13 +46,6 @@ jobs:
           hide_complexity: true
           indicators: true
           output: both
-
-      - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request'
-        with:
-          recreate: true
-          path: code-coverage-results.md
 
       - name: Upload Coverage Reports to Codecov
         uses: codecov/codecov-action@v4
