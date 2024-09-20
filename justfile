@@ -15,7 +15,7 @@ lint:
 
 # Runs all non-MPI tests and determines coverage.
 test-cov:
-	pytest --cov=src/qttools --cov-report=term --cov-report=xml tests/
+	pytest -n 4 --cov=src/qttools --cov-report=term --cov-report=xml tests/
 
 # Runs all MPI-only tests with a given number of MPI ranks.
 test-mpi ranks="3":
