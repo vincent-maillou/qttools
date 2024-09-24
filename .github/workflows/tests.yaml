@@ -23,6 +23,10 @@ jobs:
           activate-environment: quatrex
           environment-file: environment.yml
       
+      - name: Install mpi4py
+        run: |
+          pip install mpi4py
+
       - name: Install qttools without Dependencies
         run: |
           pip install --no-deps --editable .
