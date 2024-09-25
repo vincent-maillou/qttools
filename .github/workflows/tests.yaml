@@ -14,9 +14,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up mpi4py
-        uses: mpi4py/setup-mpi@v1
-
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -28,7 +25,7 @@ jobs:
       
       - name: Install mpi4py
         run: |
-          pip install mpi4py
+          conda install -c conda-forge mpi4py mpich
 
       - name: Install qttools without Dependencies
         run: |
