@@ -23,12 +23,14 @@ jobs:
           activate-environment: quatrex
           environment-file: environment.yml
       
+      - name: Use mpi4py
+        uses: mpi4py/setup-mpi@v1
+
       - name: Install qttools without Dependencies
         run: |
           pip install --no-deps --editable .
 
       - name: Run MPI Tests
-        uses: mpi4py/setup-mpi@v1
         run: |
           mpiexec -np 3 pytest --only-mpi tests/
 
