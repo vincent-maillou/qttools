@@ -33,11 +33,14 @@ dependencies = [
     "pytest",
     "pytest-cov",
     "pytest-mpi",
+    "pytest-xdist",
     "coverage",
     "black",
+    "blacken-docs",
     "isort",
     "ruff",
     "sphinx",
+    "just",
 ]
 [project.optional-dependencies]
 cupy = ["cupy==13.2.0"]
