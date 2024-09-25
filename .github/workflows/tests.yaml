@@ -28,7 +28,7 @@ jobs:
       
       - name: Install mpi4py
         run: |
-          conda install -c conda-forge mpi4py
+          pip install mpi4py
 
       - name: Install qttools without Dependencies
         run: |
