@@ -14,8 +14,8 @@ lint:
 	ruff check
 
 # Runs all non-MPI tests and determines coverage.
-test-cov:
-	pytest -n 4 --cov=src/qttools --cov-report=term --cov-report=xml tests/
+test-cov workers="4":
+	pytest -n {{workers}} --cov=src/qttools --cov-report=term --cov-report=xml tests/
 
 # Runs all MPI-only tests with a given number of MPI ranks.
 test-mpi ranks="3":
