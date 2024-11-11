@@ -533,7 +533,34 @@ class DSBSparse(ABC):
         out = copy.deepcopy(dsbsparse)
         out.data[:] = 0.0
         return out
+    
+    @classmethod
+    def block_matmul_single(cls,A:"DSBSparse",B:"DSBSparse",in_num_offdiag_blocks:int, i:int,j:int, stack):
+        tmp = xp.zeros((int(A.block_sizes[i]),int(B.block_sizes[j])),dtype=A.dtype)
+        for k in range( max(i - in_num_offdiag_blocks,0), min(i + in_num_offdiag_blocks + 1, A.num_blocks) ):
+            if (abs(k-j) <= in_num_offdiag_blocks):
+                tmp += A.stack[stack].blocks[i,k] @ B.stack[stack].blocks[k,j]
+        return tmp
 
+    @classmethod
+    def block_matmul(cls,A:"DSBSparse",B:"DSBSparse",C:"DSBSparse", in_num_offdiag_blocks:int, out_num_offdiag_blocks:int):
+        for stack in range(A.stack_shape[0]):
+            for i in range(C.num_blocks):
+                for j in range( max(i - out_num_offdiag_blocks,0), min(i + out_num_offdiag_blocks + 1, C.num_blocks) ):            
+                    C.stack[stack].blocks[i,j] = DSBSparse.block_matmul_single(A,B,in_num_offdiag_blocks,i,j,stack)
+    
+    def plot(self,stack,num_blocks,plt,colors):
+        fig = plt.figure()
+        axs = fig.subplots(num_blocks,num_blocks)
+        for i in range(num_blocks):
+            for j in range(num_blocks):            
+                axs[i,j].imshow(xp.abs(self.stack[stack].blocks[i,j]).get(),
+                                norm=colors.LogNorm(vmin=xp.abs(self.data.min()), 
+                                                    vmax=xp.abs(self.data.max())))
+                axs[i,j].get_xaxis().set_visible(False)
+                axs[i,j].get_yaxis().set_visible(False)
+        plt.tight_layout()
+        plt.show()
 
 class _DStackIndexer:
     """A utility class to locate substacks in the distributed stack.

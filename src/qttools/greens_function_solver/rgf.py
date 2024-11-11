@@ -9,7 +9,7 @@ from qttools.utils.solvers_utils import get_batches
 
 class RGF(GFSolver):
     def selected_inv(
-        self, a: DSBSparse, out=None, max_batch_size: int = 1
+        self, a: DSBSparse, out=None, max_batch_size: int = 1, num_offdiag: int = 1
     ) -> None | DSBSparse:
         """
         Perform the selected inversion of a matrix in block-tridiagonal form.
@@ -61,11 +61,19 @@ class RGF(GFSolver):
                 x_jj = x_.blocks[j, j]
                 a_ij = a_.blocks[i, j]
 
-                x_ji = -x_jj @ a_.blocks[j, i] @ x_ii
+                aji_xii = a_.blocks[j, i] @ x_ii
+                x_ji = -x_jj @ aji_xii
                 x_.blocks[j, i] = x_ji
-                x_.blocks[i, j] = -x_ii @ a_ij @ x_jj
+                xii_aij = x_ii @ a_ij
+                x_.blocks[i, j] = - xii_aij @ x_jj
 
-                x_.blocks[i, i] = x_ii - x_ii @ a_ij @ x_ji
+                x_.blocks[i, i] = x_ii - xii_aij @ x_ji
+
+                for idiag in range(2,num_offdiag+1):
+                    if (i < a.num_blocks - idiag):        
+                        k = i + idiag
+                        x_.blocks[k, i] = -x_.blocks[k, j] @ aji_xii
+                        x_.blocks[i, k] = -xii_aij @ x_.blocks[j, k] 
 
         if out is None:
             return x
