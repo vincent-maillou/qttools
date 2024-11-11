@@ -1,3 +1,10 @@
+/* ETH Colors. */
+:root {
+  --md-primary-fg-color:        #215caf;
+  --md-primary-fg-color--light: #7a9dcf;
+  --md-primary-fg-color--dark:  #08407e;
+}
+
 /* Indentation. */
 div.doc-contents:not(.first) {
   padding-left: 25px;

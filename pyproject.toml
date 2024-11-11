@@ -5,15 +5,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qttools"
 authors = [
-    { name = "Anders Winka", email = "awinka@iis.ee.ethz.ch" },
-    { name = "Leonard Deuschle", email = "dleonard@iis.ee.ethz.ch" },
     { name = "Nicolas Vetsch", email = "vetschn@iis.ee.ethz.ch" },
     { name = "Vincent Maillou", email = "vmaillou@iis.ee.ethz.ch" },
-    { name = "PhD. Alexandros Nikolaos Ziogas", email = "alziogas@iis.ee.ethz.ch" },
-    { name = "PhD. Jiang Cao", email = "jiang.cao@iis.ee.ethz.ch" },
-    { name = "Prof. PhD. Mathieu Luisier", email = "mluisier@iis.ee.ethz.ch" },
+    { name = "Anders Winka", email = "awinka@iis.ee.ethz.ch" },
+    { name = "Leonard Deuschle", email = "dleonard@iis.ee.ethz.ch" },
+    { name = "Alexandros Nikolaos Ziogas", email = "alziogas@iis.ee.ethz.ch" },
+    { name = "Jiang Cao", email = "jiang.cao@iis.ee.ethz.ch" },
+    { name = "Mathieu Luisier", email = "mluisier@iis.ee.ethz.ch" },
 ]
-description = "Quantum Transport Algorithms Toolbox"
+description = "The Quantum Transport Toolbox"
 license = { file = "LICENSE" }
 classifiers = [
     "Intended Audience :: Science/Research",
@@ -23,13 +23,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering",
 ]
-keywords = ["Nano-TCAD", "Quantum Transport", "Algorithms toolbox"]
+keywords = ["Nano-TCAD", "Quantum Transport", "NEGF"]
 dynamic = ["version"]
 requires-python = ">=3.11"
-dependencies = [
-    "numpy>=1.23.2",
-    "scipy",
-    "matplotlib",
+dependencies = ["numpy>=1.23.2", "scipy", "matplotlib"]
+[project.optional-dependencies]
+dev = [
     "pytest",
     "pytest-cov",
     "pytest-mpi",
@@ -39,10 +38,16 @@ dependencies = [
     "blacken-docs",
     "isort",
     "ruff",
-    "sphinx",
     "just",
 ]
-[project.optional-dependencies]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings-python",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "mkdocs-section-index",
+]
 cupy = ["cupy==13.2.0"]
 mpi4py = ["mpi4py"]
 

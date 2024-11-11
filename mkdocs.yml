@@ -6,11 +6,12 @@ repo_url: https://github.com/vincent-maillou/qttools
 theme:
   name: material
   palette:
-    primary: default
+    primary: custom
   font:
     text: Arimo
     code: Fira Code
   features:
+    - content.action.edit
     - content.code.copy
     - navigation.instant
     - navigation.tabs
@@ -19,6 +20,7 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - admonition
+  - footnotes
   - toc:
       permalink: "#"
   - pymdownx.emoji:
@@ -40,10 +42,12 @@ extra_javascript:
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 extra_css:
-  - stylesheets/qttools.css
+  - stylesheets/custom.css
+  - stylesheets/mkdocstrings.css
 
 plugins:
   - search
+  - autorefs
   - gen-files:
       scripts:
         - docs/scripts/generate_api_reference.py
@@ -74,6 +78,7 @@ plugins:
               ignore_init_summary: true
             merge_init_into_class: true
             # Signatures options
+            annotations_path: "source"
 
 nav:
   - Home: index.md
