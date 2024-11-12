@@ -65,15 +65,15 @@ class RGF(GFSolver):
                 x_ji = -x_jj @ aji_xii
                 x_.blocks[j, i] = x_ji
                 xii_aij = x_ii @ a_ij
-                x_.blocks[i, j] = - xii_aij @ x_jj
+                x_.blocks[i, j] = -xii_aij @ x_jj
 
                 x_.blocks[i, i] = x_ii - xii_aij @ x_ji
 
-                for idiag in range(2,num_offdiag+1):
-                    if (i < a.num_blocks - idiag):        
+                for idiag in range(2, num_offdiag + 1):
+                    if i < a.num_blocks - idiag:
                         k = i + idiag
                         x_.blocks[k, i] = -x_.blocks[k, j] @ aji_xii
-                        x_.blocks[i, k] = -xii_aij @ x_.blocks[j, k] 
+                        x_.blocks[i, k] = -xii_aij @ x_.blocks[j, k]
 
         if out is None:
             return x
