@@ -10,14 +10,14 @@ def block_to_dense(A):
                 tmp[block_size*i:block_size*(i+1),block_size*j:block_size*(j+1)] = A[i][j]
     return tmp
 
-def random_block(block_size,num_blocks,num_offdiag):        
+def random_block(block_size,num_blocks,num_offdiag=1):        
     tmp = [[None for j in range(num_blocks)] for i in range(num_blocks)]    
     for i in range(num_blocks):
         tmp[i][i] = xp.random.random((block_size,block_size))
         for idiag in range(num_offdiag):
             if i < num_blocks-1-idiag:
-                tmp[i][i+1+idiag] = xp.random.random((block_size,block_size)) * 0.25**(idiag+1)
-                tmp[i+1+idiag][i] = xp.random.random((block_size,block_size)) * 0.25**(idiag+1)
+                tmp[i][i+1+idiag] = xp.random.random((block_size,block_size)) * 0.5**(idiag+1)
+                tmp[i+1+idiag][i] = xp.random.random((block_size,block_size)) * 0.5**(idiag+1)
     return tmp
 
 def zeros_block(block_size,num_blocks,num_diag=1):
@@ -64,3 +64,29 @@ def selected_inv(a_,num_offdiag: int = 1):
                 tmp -= x_[i][i] @ a_[i][j] @ x_[j][i]       
         x_[i][i] += tmp
     return x_
+
+def test_selected_inv(num_blocks,block_size,num_offdiag):    
+    H = random_block(block_size,num_blocks,num_offdiag)
+    h = block_to_dense(H)
+
+    Gfull = xp.linalg.inv(h)
+
+    x = selected_inv(H,num_offdiag)
+
+    def get_block(C, bs, i, j):
+        return(C[bs*i:bs*(i+1),bs*j:bs*(j+1)])
+
+    # test diagonal blocks
+    for i in range(num_blocks):
+        j = i
+        g00=get_block(Gfull, block_size, i, j)
+        print(i,j, xp.allclose(x[i][j], g00))
+    # test off-diagonal blocks
+    for ioffdiag in range(1,num_offdiag+1):
+        for i in range(num_blocks-ioffdiag):
+            j = i+ioffdiag
+            g00=get_block(Gfull, block_size, i, j)
+            print(i,j, xp.allclose(x[i][j], g00))
+            g00=get_block(Gfull, block_size, j, i)
+            print(j,i, xp.allclose(x[j][i], g00))   
+
