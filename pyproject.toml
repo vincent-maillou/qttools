@@ -26,8 +26,10 @@ classifiers = [
 keywords = ["Nano-TCAD", "Quantum Transport", "NEGF"]
 dynamic = ["version"]
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.23.2", "scipy", "matplotlib"]
+dependencies = ["numpy>=1.23.2", "scipy"]
 [project.optional-dependencies]
+mpi4py = ["mpi4py"]
+cupy = ["cupy==13.2.0"]
 dev = [
     "pytest",
     "pytest-cov",
@@ -48,8 +50,6 @@ docs = [
     "mkdocs-literate-nav",
     "mkdocs-section-index",
 ]
-cupy = ["cupy==13.2.0"]
-mpi4py = ["mpi4py"]
 
 [project.urls]
 Code = "https://github.com/vincent-maillou/qttools"
