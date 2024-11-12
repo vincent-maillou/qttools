@@ -18,14 +18,10 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: "3.11"
-          channels: anaconda,conda-forge,defaults
+          channels: conda-forge,defaults
           channel-priority: true
-          activate-environment: quatrex
-          environment-file: environment.yml
-
-      - name: Install mpi4py
-        run: |
-          conda install -c conda-forge mpi4py mpich
+          activate-environment: quatrex-dev
+          environment-file: environment-dev.yml
 
       - name: Install Numba
         run: |
