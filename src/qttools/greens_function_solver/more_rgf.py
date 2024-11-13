@@ -20,26 +20,26 @@ def block_to_dense(A):
 def random_block(block_size: int, num_blocks: int, num_offdiag: int = 1):
     tmp = [[None for j in range(num_blocks)] for i in range(num_blocks)]
     for i in range(num_blocks):
-        tmp[i][i] = xp.random.random((block_size, block_size))
+        tmp[i][i] = xp.random.random((block_size, block_size)) + 1j *  xp.random.random((block_size, block_size)) 
         for idiag in range(num_offdiag):
             if i < num_blocks - 1 - idiag:
-                tmp[i][i + 1 + idiag] = xp.random.random(
+                tmp[i][i + 1 + idiag] = (xp.random.random(
                     (block_size, block_size)
-                ) * 0.5 ** (idiag + 1)
-                tmp[i + 1 + idiag][i] = xp.random.random(
+                ) + 1j * xp.random.random((block_size, block_size)) ) * 0.5 ** (idiag + 1)
+                tmp[i + 1 + idiag][i] = (xp.random.random(
                     (block_size, block_size)
-                ) * 0.5 ** (idiag + 1)
+                ) + 1j * xp.random.random((block_size, block_size)) ) * 0.5 ** (idiag + 1)
     return tmp
 
 
-def zeros_block(block_size: int, num_blocks: int, num_offdiag: int = 1):
+def zeros_block(block_size: int, num_blocks: int, num_offdiag: int = 1, dtype = xp.complex128):
     tmp = [[None for j in range(num_blocks)] for i in range(num_blocks)]
     for i in range(num_blocks):
-        tmp[i][i] = xp.zeros((block_size, block_size))
+        tmp[i][i] = xp.zeros((block_size, block_size),dtype=dtype)
         for idiag in range(num_offdiag):
             if i < num_blocks - idiag - 1:
-                tmp[i][i + idiag + 1] = xp.zeros((block_size, block_size))
-                tmp[i + idiag + 1][i] = xp.zeros((block_size, block_size))
+                tmp[i][i + idiag + 1] = xp.zeros((block_size, block_size),dtype=dtype)
+                tmp[i + idiag + 1][i] = xp.zeros((block_size, block_size),dtype=dtype)
     return tmp
 
 
