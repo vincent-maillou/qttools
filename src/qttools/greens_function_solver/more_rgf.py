@@ -17,29 +17,62 @@ def block_to_dense(A):
     return tmp
 
 
-def random_block(block_size: int, num_blocks: int, num_offdiag: int = 1):
+def random_block(block_size: int, num_blocks: int, num_offdiag: int = 1, complex=False, symmetry=None):
     tmp = [[None for j in range(num_blocks)] for i in range(num_blocks)]
     for i in range(num_blocks):
-        tmp[i][i] = xp.random.random((block_size, block_size)) + 1j *  xp.random.random((block_size, block_size)) 
+        if complex:
+            tmp[i][i] = xp.random.random(
+                (block_size, block_size)
+            ) + 1j * xp.random.random((block_size, block_size))
+        else:
+            tmp[i][i] = xp.random.random((block_size, block_size))
+        
+        if (symmetry == 'H'):
+            a = (tmp[i][i] + tmp[i][i].conj().T) / 2 
+            tmp[i][i] = a
+
         for idiag in range(num_offdiag):
             if i < num_blocks - 1 - idiag:
-                tmp[i][i + 1 + idiag] = (xp.random.random(
-                    (block_size, block_size)
-                ) + 1j * xp.random.random((block_size, block_size)) ) * 0.5 ** (idiag + 1)
-                tmp[i + 1 + idiag][i] = (xp.random.random(
-                    (block_size, block_size)
-                ) + 1j * xp.random.random((block_size, block_size)) ) * 0.5 ** (idiag + 1)
+                if complex:
+                    tmp[i][i + 1 + idiag] = (
+                        xp.random.random((block_size, block_size))
+                        + 1j * xp.random.random((block_size, block_size))
+                    ) * 0.5 ** (idiag + 1)
+
+                    if (symmetry == 'H'):
+                        tmp[i + 1 + idiag][i] = ((tmp[i][i + 1 + idiag]).conj().T).copy()
+                    else:
+                        tmp[i + 1 + idiag][i] = (
+                            xp.random.random((block_size, block_size))
+                            + 1j * xp.random.random((block_size, block_size))
+                        ) * 0.5 ** (idiag + 1)
+                else:
+                    tmp[i][i + 1 + idiag] = (
+                        xp.random.random((block_size, block_size))
+                    ) * 0.5 ** (idiag + 1)
+
+                    if (symmetry == 'H'):
+                        tmp[i + 1 + idiag][i] = ((tmp[i][i + 1 + idiag]).T).copy()
+                    else:
+                        tmp[i + 1 + idiag][i] = (
+                            xp.random.random((block_size, block_size))
+                        ) * 0.5 ** (idiag + 1)
+                
+                
+
     return tmp
 
 
-def zeros_block(block_size: int, num_blocks: int, num_offdiag: int = 1, dtype = xp.complex128):
+def zeros_block(
+    block_size: int, num_blocks: int, num_offdiag: int = 1, dtype=xp.complex128
+):
     tmp = [[None for j in range(num_blocks)] for i in range(num_blocks)]
     for i in range(num_blocks):
-        tmp[i][i] = xp.zeros((block_size, block_size),dtype=dtype)
+        tmp[i][i] = xp.zeros((block_size, block_size), dtype=dtype)
         for idiag in range(num_offdiag):
             if i < num_blocks - idiag - 1:
-                tmp[i][i + idiag + 1] = xp.zeros((block_size, block_size),dtype=dtype)
-                tmp[i + idiag + 1][i] = xp.zeros((block_size, block_size),dtype=dtype)
+                tmp[i][i + idiag + 1] = xp.zeros((block_size, block_size), dtype=dtype)
+                tmp[i + idiag + 1][i] = xp.zeros((block_size, block_size), dtype=dtype)
     return tmp
 
 
@@ -47,7 +80,7 @@ def selected_inv(a_, num_offdiag: int = 1):
     num_blocks = len(a_)
     block_size = a_[0][0].shape[0]
 
-    x_ = zeros_block(block_size, num_blocks, num_offdiag)
+    x_ = zeros_block(block_size, num_blocks, num_offdiag, dtype=a_[0][0].dtype)
     x_[0][0] = xp.linalg.inv(a_[0][0])
 
     # Forwards sweep.
