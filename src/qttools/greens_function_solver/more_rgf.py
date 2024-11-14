@@ -116,6 +116,15 @@ def duplicate_block_matrix(A):
     return B
 
 
+def hermitian_conj_block_matrix(A):
+    num_blocks = len(A)
+    B = [[None for j in range(num_blocks)] for i in range(num_blocks)]
+    for i in range(num_blocks):
+        for j in range(num_blocks):
+            if A[i][j] is not None:
+                B[j][i] = A[i][j].copy().conj().T
+    return B
+
 def assign_block_matrix(A, B):
     num_blocks = len(A)
     for i in range(num_blocks):
@@ -263,8 +272,6 @@ def sancho(
         block_add(epsilon, D, 1, -1)
         block_add(epsilon_s, D, 1, -1)
 
-        block_matmul(1, C, alpha, D, block_sizes, dtype)
-
         block_matmul(1, beta, inverse, C, block_sizes, dtype)
         block_matmul(1, C, alpha, D, block_sizes, dtype)
         block_add(epsilon, D, 1, -1)
@@ -297,3 +304,94 @@ def sancho(
         GBB = inverse
 
     return x_ii
+
+
+def nested_block_to_dense(A, level, dtype = xp.complex128):
+    if A is None:
+        return None, 0
+    else:
+        if level == 0:
+            return A, A.shape[0]
+        else:
+            num_blocks = len(A)
+            tmp = [[None for j in range(num_blocks)] for i in range(num_blocks)]
+            diag_sizes = xp.zeros((num_blocks), dtype=int)
+            for i in range(num_blocks):
+                for j in range(num_blocks):
+                    if i == j:
+                        tmp[i][j], diag_sizes[i] = nested_block_to_dense(
+                            A[i][j], level - 1, dtype=dtype
+                        )
+                    else:
+                        tmp[i][j], _ = nested_block_to_dense(A[i][j], level - 1, dtype=dtype)
+
+            mat_size = int(xp.sum(diag_sizes))
+            mat = xp.zeros((mat_size, mat_size), dtype=dtype)
+            for i in range(num_blocks):
+                for j in range(num_blocks):
+                    if tmp[i][j] is not None:
+                        i0 = sum(diag_sizes[:i])
+                        j0 = sum(diag_sizes[:j])
+                        mat[i0 : i0 + diag_sizes[i], j0 : j0 + diag_sizes[j]] = tmp[i][
+                            j
+                        ]
+            return mat, sum(diag_sizes)
+
+
+def nested_selected_inv(a_, block_sizes):
+    num_blocks = len(a_)
+
+    x_ = [[None for j in range(num_blocks)] for i in range(num_blocks)]
+
+    aii_blocksize = len(a_[0][0])
+
+    x_[0][0] = selected_inv(a_[0][0], num_offdiag = aii_blocksize - 1)
+    dtype = xp.complex128 
+
+    # Forwards sweep.
+    for i in range(num_blocks - 1):
+        j = i + 1
+        aii_blocksize = len(a_[j][j])        
+
+        ax = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
+        axa = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
+
+        block_matmul(1, a_[j][i], x_[i][i], ax, block_sizes, dtype)
+        block_matmul(1, ax, a_[i][j], axa, block_sizes, dtype)
+        block_add(axa, a_[j][j], -1, 1)
+
+        x_[j][j] = selected_inv(axa, num_offdiag= aii_blocksize - 1)
+
+    for i in range(num_blocks - 2, -1, -1):
+        
+        j = i + 1
+
+        x_ii = x_[i][i]
+        x_jj = x_[j][j]
+        a_ij = a_[i][j]
+
+        aii_blocksize = len(a_[i][i])
+        
+        xa = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
+        aji_xii = [
+            [None for j in range(aii_blocksize)] for i in range(aii_blocksize)
+        ]
+        xii_aij = [
+            [None for j in range(aii_blocksize)] for i in range(aii_blocksize)
+        ]
+        x_ji = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
+        x_ij = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
+        
+        block_matmul(1, a_[j][i], x_ii, aji_xii, block_sizes, dtype)
+        block_matmul(-1, x_jj, aji_xii, x_ji, block_sizes, dtype)
+        x_[j][i] = x_ji
+
+        block_matmul(1, x_ii, a_ij, xii_aij, block_sizes, dtype)
+        block_matmul(-1, xii_aij, x_jj, x_ij, block_sizes, dtype)
+        x_[i][j] = x_ij
+
+        block_matmul(1, xii_aij, x_ji, xa, block_sizes, dtype)
+
+        block_add(x_ii, xa, 1, -1)
+
+    return x_
