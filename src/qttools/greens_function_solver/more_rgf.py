@@ -125,6 +125,7 @@ def hermitian_conj_block_matrix(A):
                 B[j][i] = A[i][j].copy().conj().T
     return B
 
+
 def assign_block_matrix(A, B):
     num_blocks = len(A)
     for i in range(num_blocks):
@@ -159,14 +160,14 @@ def block_add(A, B, alpha, beta):
                     A[ii][jj] += B[ii][jj] * beta
 
 
-def selected_inv(a_, num_offdiag: int = 1, out=None):
+def selected_inv(a_, num_offdiag: int = 1, out=None, GN0=None, G0N=None):
     num_blocks = len(a_)
     block_size = a_[0][0].shape[0]
-
+    dtype = a_[0][0].dtype
     if out is not None:
         x_ = out
     else:
-        x_ = zeros_block(block_size, num_blocks, num_offdiag, dtype=a_[0][0].dtype)
+        x_ = zeros_block(block_size, num_blocks, num_offdiag, dtype=dtype)
 
     x_[0][0] = xp.linalg.inv(a_[0][0])
 
@@ -181,6 +182,7 @@ def selected_inv(a_, num_offdiag: int = 1, out=None):
 
     # Backwards sweep.
     for i in range(num_blocks - 2, -1, -1):
+        # off-diagonal blocks of invert
         for j in range(i + 1, num_blocks):
             for k in range(i + 1, num_blocks):
                 if (
@@ -196,12 +198,34 @@ def selected_inv(a_, num_offdiag: int = 1, out=None):
                 ):
                     x_[i][k] -= x_[i][i] @ a_[i][j] @ x_[j][k]
 
+        if GN0 is not None:
+            if i == num_blocks - 2:
+                # $G_{N,N-1}$
+                GN0 = -x_[i + 1][i + 1] @ a_[i + 1][i] @ x_[i][i]
+            else:
+                # $G_{N,i}$
+                GN0 = -GN0 @ a_[i + 1][i] @ x_[i][i]
+        if G0N is not None:
+            if i == num_blocks - 2:
+                # $G_{N-1,N}$
+                G0N = -x_[i][i] @ a_[i][i + 1] @ x_[i + 1][i + 1]
+            else:
+                # $G_{i,N}$
+                G0N = -x_[i][i] @ a_[i][i + 1] @ G0N
+
+        # diagonal blocks of invert
         tmp = xp.zeros_like(x_[i][i])
         for j in range(i + 1, num_blocks):
             if (x_[j][i] is not None) and (a_[i][j] is not None):
                 tmp -= x_[i][i] @ a_[i][j] @ x_[j][i]
         x_[i][i] += tmp
 
+    if (G0N is not None) and (G0N is not None):
+        return x_, G0N, GN0
+    elif G0N is not None:
+        return x_, G0N
+    elif GN0 is not None:
+        return x_, GN0
     if out is None:
         return x_
 
@@ -244,6 +268,7 @@ def sancho(
     epsilon=None,
     epsilon_s=None,
     GBB=None,
+    plot=False,
 ):
     num_blocks = len(a_ii)
     m = [[None for j in range(num_blocks)] for i in range(num_blocks)]
@@ -259,12 +284,15 @@ def sancho(
     C = [[None for j in range(num_blocks)] for i in range(num_blocks)]
     D = [[None for j in range(num_blocks)] for i in range(num_blocks)]
     dtype = xp.complex128
-    num_offdiag = num_blocks - 1
+    num_offdiag = 1  # num_blocks - 1
     delta = float("inf")
+
     for iter in range(max_iterations):
 
         assign_block_matrix(epsilon, m)
-        inverse = selected_inv(m, num_offdiag=num_offdiag)
+        G0N = xp.zeros_like(a_ii[0][0])
+        GN0 = xp.zeros_like(a_ii[0][0])
+        inverse, G0N, GN0 = selected_inv(m, num_offdiag=num_offdiag, G0N=G0N, GN0=GN0)
 
         block_matmul(1, alpha, inverse, C, block_sizes, dtype)
         block_matmul(1, C, beta, D, block_sizes, dtype)
@@ -276,18 +304,14 @@ def sancho(
         block_matmul(1, C, alpha, D, block_sizes, dtype)
         block_add(epsilon, D, 1, -1)
 
-        block_matmul(1, C, beta, D, block_sizes, dtype)
-        assign_block_matrix(D, beta)
+        # beta : a_{n0} = a_{n0} G_{0n} a_{n0}
+        # alpha : a_{0n} = a_{0n} G_{n0} a_{0n}
 
-        block_matmul(1, alpha, inverse, C, block_sizes, dtype)
-        block_matmul(1, C, alpha, D, block_sizes, dtype)
-        assign_block_matrix(D, alpha)
+        tmp = beta[-1][0] @ G0N @ beta[-1][0]
+        beta[-1][0] = tmp
 
-        # epsilon = epsilon - alpha @ inverse @ beta - beta @ inverse @ alpha
-        # epsilon_s = epsilon_s - alpha @ inverse @ beta
-
-        # alpha = alpha @ inverse @ alpha
-        # beta = beta @ inverse @ beta
+        tmp = alpha[0][-1] @ GN0 @ alpha[0][-1]
+        alpha[0][-1] = tmp
 
         delta = (block_norm(alpha) + block_norm(beta)) / 2
 
@@ -298,7 +322,7 @@ def sancho(
         raise RuntimeError("Surface Green's function did not converge.")
 
     x_ii = selected_inv(epsilon_s, num_offdiag=num_offdiag)
-    # print('sancho converges in ', iter)
+    print("sancho converges in ", iter)
     if GBB is not None:
         inverse = selected_inv(epsilon, num_offdiag=num_offdiag)
         GBB = inverse
@@ -306,7 +330,7 @@ def sancho(
     return x_ii
 
 
-def nested_block_to_dense(A, level, dtype = xp.complex128):
+def nested_block_to_dense(A, level, dtype=xp.complex128):
     if A is None:
         return None, 0
     else:
@@ -323,7 +347,9 @@ def nested_block_to_dense(A, level, dtype = xp.complex128):
                             A[i][j], level - 1, dtype=dtype
                         )
                     else:
-                        tmp[i][j], _ = nested_block_to_dense(A[i][j], level - 1, dtype=dtype)
+                        tmp[i][j], _ = nested_block_to_dense(
+                            A[i][j], level - 1, dtype=dtype
+                        )
 
             mat_size = int(xp.sum(diag_sizes))
             mat = xp.zeros((mat_size, mat_size), dtype=dtype)
@@ -345,13 +371,13 @@ def nested_selected_inv(a_, block_sizes):
 
     aii_blocksize = len(a_[0][0])
 
-    x_[0][0] = selected_inv(a_[0][0], num_offdiag = aii_blocksize - 1)
-    dtype = xp.complex128 
+    x_[0][0] = selected_inv(a_[0][0], num_offdiag=aii_blocksize - 1)
+    dtype = xp.complex128
 
     # Forwards sweep.
     for i in range(num_blocks - 1):
         j = i + 1
-        aii_blocksize = len(a_[j][j])        
+        aii_blocksize = len(a_[j][j])
 
         ax = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
         axa = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
@@ -360,10 +386,10 @@ def nested_selected_inv(a_, block_sizes):
         block_matmul(1, ax, a_[i][j], axa, block_sizes, dtype)
         block_add(axa, a_[j][j], -1, 1)
 
-        x_[j][j] = selected_inv(axa, num_offdiag= aii_blocksize - 1)
+        x_[j][j] = selected_inv(axa, num_offdiag=aii_blocksize - 1)
 
     for i in range(num_blocks - 2, -1, -1):
-        
+
         j = i + 1
 
         x_ii = x_[i][i]
@@ -371,17 +397,13 @@ def nested_selected_inv(a_, block_sizes):
         a_ij = a_[i][j]
 
         aii_blocksize = len(a_[i][i])
-        
+
         xa = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
-        aji_xii = [
-            [None for j in range(aii_blocksize)] for i in range(aii_blocksize)
-        ]
-        xii_aij = [
-            [None for j in range(aii_blocksize)] for i in range(aii_blocksize)
-        ]
+        aji_xii = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
+        xii_aij = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
         x_ji = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
         x_ij = [[None for j in range(aii_blocksize)] for i in range(aii_blocksize)]
-        
+
         block_matmul(1, a_[j][i], x_ii, aji_xii, block_sizes, dtype)
         block_matmul(-1, x_jj, aji_xii, x_ji, block_sizes, dtype)
         x_[j][i] = x_ji
