@@ -576,11 +576,13 @@ class DSBSparse(ABC):
 
         arr = xp.zeros(self.shape, dtype=self.dtype)
         for i, j in xp.ndindex(self.num_blocks, self.num_blocks):
-            arr[
-                ...,
-                self.block_offsets[i] : self.block_offsets[i + 1],
-                self.block_offsets[j] : self.block_offsets[j + 1],
-            ] = self._get_block((Ellipsis,), i, j)
+            block = self._get_block((Ellipsis,), i, j)
+            if block is not None:
+                arr[
+                    ...,
+                    self.block_offsets[i] : self.block_offsets[i + 1],
+                    self.block_offsets[j] : self.block_offsets[j + 1],
+                ] = block
 
         self.return_dense = original_return_dense
 
