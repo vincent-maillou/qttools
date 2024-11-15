@@ -272,7 +272,10 @@ class DSBCOO(DSBSparse):
         )
         if block_slice == slice(None):
             # No data in this block, return an empty block.
-            return None
+            if self.return_None:
+                return None
+            else:
+                return block
 
         block[
             ...,

@@ -115,6 +115,9 @@ class DSBSparse(ABC):
     return_dense : bool, optional
         Whether to return dense arrays when accessing the blocks.
         Default is True.
+    return_None : bool, optional
+        Whether to return None when accessing empty block.
+        Default is False.
 
     """
 
@@ -124,6 +127,7 @@ class DSBSparse(ABC):
         block_sizes: ArrayLike,
         global_stack_shape: tuple | int,
         return_dense: bool = True,
+        return_None: bool = False,
     ) -> None:
         """Initializes the DBSparse matrix."""
         if isinstance(global_stack_shape, int):
@@ -179,6 +183,7 @@ class DSBSparse(ABC):
         self.block_offsets = xp.hstack(([0], xp.cumsum(self.block_sizes)))
         self.num_blocks = len(block_sizes)
         self.return_dense = return_dense
+        self.return_None = return_None
 
     @property
     def block_sizes(self) -> ArrayLike:

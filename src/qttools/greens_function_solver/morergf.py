@@ -37,6 +37,9 @@ class moreRGF(GFSolver):
         else:
             x = a.__class__.zeros_like(a)
 
+        x.return_None = True
+        a.return_None = True
+
         for b in range(len(batches_sizes)):
             stack_slice = slice(int(batches_slices[b]), int(batches_slices[b + 1]), 1)
 
@@ -103,7 +106,6 @@ class moreRGF(GFSolver):
 
         if out is None:
             return x
-
 
     def selected_solve(
         self,
