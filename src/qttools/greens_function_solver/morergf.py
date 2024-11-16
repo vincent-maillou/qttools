@@ -46,63 +46,87 @@ class moreRGF(GFSolver):
             a_ = a.stack[stack_slice]
             x_ = x.stack[stack_slice]
 
-            x_ii = xp.linalg.inv(a_.blocks[0, 0])
+            # working memory
+            w = [[None for j in range(a.num_blocks)] for i in range(a.num_blocks)]
 
-            x_.blocks[0, 0] = x_ii
+            w[0][0] = xp.linalg.inv(a_.blocks[0, 0])
 
             # Forwards sweep.
             for i in range(a.num_blocks - 1):
 
                 for j in range(i + 1, a.num_blocks):
                     a_ji = a_.blocks[j, i]
+
                     if a_ji is not None:
+                        if w[j][i] is None:
+                            w[j][i] = a_ji  # cache into working memory
                         for k in range(i + 1, a.num_blocks):
                             a_ik = a_.blocks[i, k]
                             a_jk = a_.blocks[j, k]
                             if (a_ik is not None) and (a_jk is not None):
-                                a_.blocks[j, k] = a_jk - a_ji @ x_ii @ a_ik
+                                if w[i][k] is None:
+                                    w[i][k] = a_ik  # cache into working memory
+                                if w[j][k] is None:
+                                    w[j][k] = a_jk
+                                w[j][k] -= w[j][i] @ w[i][i] @ w[i][k]
 
                 j = i + 1
-                x_ii = xp.linalg.inv(a_.blocks[j, j])
-                x_.blocks[j, j] = x_ii
+                w[j][j] = xp.linalg.inv(w[j][j])
 
             # Backwards sweep.
             for i in range(a.num_blocks - 2, -1, -1):
 
-                x_ii = x_.blocks[i, i]
-                dx_ii = xp.zeros_like(x_ii)
+                dx_ii = xp.zeros_like(w[i][i])
+
+                # temporary memory to avoid overwrite a_ji
+                x_ki = [None for j in range(a.num_blocks)]
+                x_ik = [None for j in range(a.num_blocks)]
 
                 # off-diagonal blocks of invert
-                # need to keep them as dense for the diagonal block
-                # because calling the x_.blocks[k,i] will set the sparsity of a_, thus losing precision.
-
                 for k in range(i + 1, a.num_blocks):
 
-                    x_ki = x_.blocks[k, i]
-                    x_ik = x_.blocks[i, k]
+                    # if (x_.blocks[k,i] is not None):
 
-                    if (x_ki is not None) and (x_ik is not None):
-                        for j in range(i + 1, a.num_blocks):
+                    # x_ki[k] = xp.zeros_like(x_.blocks[k,i])
 
-                            a_ji = a_.blocks[j, i]
-                            a_ij = a_.blocks[i, j]
+                    for j in range(i + 1, a.num_blocks):
 
-                            if (a_ji is not None) and (a_ij is not None):
-                                x_kj = x_.blocks[k, j]
-                                if x_kj is not None:
-                                    x_ki -= x_kj @ a_ji @ x_ii
-                                x_jk = x_.blocks[j, k]
-                                if x_jk is not None:
-                                    x_ik -= x_ii @ a_ij @ x_jk
+                        if (w[j][i] is not None) and (w[k][j] is not None):
+                            if x_ki[k] is None:
+                                x_ki[k] = -w[k][j] @ w[j][i] @ w[i][i]
+                            else:
+                                x_ki[k] -= w[k][j] @ w[j][i] @ w[i][i]
 
-                        x_.blocks[k, i] = x_ki
-                        x_.blocks[i, k] = x_ik
+                    if w[i][k] is not None:
+                        dx_ii += w[i][i] @ w[i][k] @ x_ki[k]
 
-                        a_ik = a_.blocks[i, k]
-                        dx_ii += x_ii @ a_ik @ x_ki
+                    # if (x_.blocks[i,k] is not None):
+
+                    #     x_ik[k] = xp.zeros_like(x_.blocks[i,k])
+
+                    for j in range(i + 1, a.num_blocks):
+
+                        if (w[i][j] is not None) and (w[j][k] is not None):
+                            if x_ik[k] is None:
+                                x_ik[k] = -w[i][i] @ w[i][j] @ w[j][k]
+                            else:
+                                x_ik[k] -= w[i][i] @ w[i][j] @ w[j][k]
+
+                for k in range(i + 1, a.num_blocks):
+                    if x_ki[k] is not None:
+                        w[k][i] = x_ki[k]
+
+                    if x_ik[k] is not None:
+                        w[i][k] = x_ik[k]
 
                 # diagonal blocks of invert
-                x_.blocks[i, i] = x_ii - dx_ii
+                w[i][i] += -dx_ii
+
+            # copy the result from working memory to x
+            for i in range(x.num_blocks):
+                for j in range(x.num_blocks):
+                    if (x_.blocks[i, j] is not None) and (w[i][j] is not None):
+                        x_.blocks[i, j] = w[i][j]
 
         if out is None:
             return x
