@@ -23,9 +23,13 @@ jobs:
           activate-environment: quatrex
           environment-file: environment.yml
       
-      - name: Install mpi4py and Numba
+      - name: Install mpi4py
         run: |
-          conda install -c conda-forge mpi4py mpich numba
+          conda install -c conda-forge mpi4py mpich
+
+      - name: Install Numba
+        run: |
+          pip install numba
 
       - name: Install qttools without Dependencies
         run: |
