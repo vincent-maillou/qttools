@@ -85,38 +85,34 @@ class moreRGF(GFSolver):
                 # off-diagonal blocks of invert
                 for k in range(i + 1, a.num_blocks):
 
-                    # if (x_.blocks[k,i] is not None):
+                    if (x_.blocks[k,i] is not None):
 
-                    # x_ki[k] = xp.zeros_like(x_.blocks[k,i])
+                        for j in range(i + 1, a.num_blocks):
 
-                    for j in range(i + 1, a.num_blocks):
+                            if (w[j][i] is not None) and (w[k][j] is not None):
+                                if x_ki[k] is None:
+                                    x_ki[k] = -w[k][j] @ w[j][i] @ w[i][i]
+                                else:
+                                    x_ki[k] -= w[k][j] @ w[j][i] @ w[i][i]
 
-                        if (w[j][i] is not None) and (w[k][j] is not None):
-                            if x_ki[k] is None:
-                                x_ki[k] = -w[k][j] @ w[j][i] @ w[i][i]
-                            else:
-                                x_ki[k] -= w[k][j] @ w[j][i] @ w[i][i]
-
-                    if w[i][k] is not None:
+                    if (w[i][k] is not None) and (x_ki[k] is not None):
                         dx_ii += w[i][i] @ w[i][k] @ x_ki[k]
 
-                    # if (x_.blocks[i,k] is not None):
+                    if (x_.blocks[i,k] is not None):
 
-                    #     x_ik[k] = xp.zeros_like(x_.blocks[i,k])
+                        for j in range(i + 1, a.num_blocks):
 
-                    for j in range(i + 1, a.num_blocks):
-
-                        if (w[i][j] is not None) and (w[j][k] is not None):
-                            if x_ik[k] is None:
-                                x_ik[k] = -w[i][i] @ w[i][j] @ w[j][k]
-                            else:
-                                x_ik[k] -= w[i][i] @ w[i][j] @ w[j][k]
+                            if (w[i][j] is not None) and (w[j][k] is not None):
+                                if x_ik[k] is None:
+                                    x_ik[k] = -w[i][i] @ w[i][j] @ w[j][k]
+                                else:
+                                    x_ik[k] -= w[i][i] @ w[i][j] @ w[j][k]
 
                 for k in range(i + 1, a.num_blocks):
-                    if x_ki[k] is not None:
+                    if (x_ki[k] is not None) and (x_.blocks[k,i] is not None):
                         w[k][i] = x_ki[k]
 
-                    if x_ik[k] is not None:
+                    if (x_ik[k] is not None) and (x_.blocks[i,k] is not None):
                         w[i][k] = x_ik[k]
 
                 # diagonal blocks of invert
