@@ -8,6 +8,14 @@ from qttools.kernels import dsbcoo_kernels, dsbsparse_kernels
 from qttools.utils.mpi_utils import get_section_sizes
 from qttools.utils.sparse_utils import densify_selected_blocks, product_sparsity_pattern
 
+torch_cuda_avail = False
+try:
+    import torch
+    if torch.cuda.is_available():
+        torch_cuda_avail = True
+except (ImportError, ModuleNotFoundError):
+    pass
+
 
 class DSBCOO(DSBSparse):
     """Distributed stack of sparse matrices in coordinate format.
@@ -48,7 +56,12 @@ class DSBCOO(DSBSparse):
         return_dense: bool = True,
     ) -> None:
         """Initializes the DBCOO matrix."""
-        super().__init__(data, block_sizes, global_stack_shape, return_dense)
+        super().__init__(
+            data,
+            block_sizes,
+            global_stack_shape,
+            return_dense,
+        )
 
         self.rows = rows.astype(int)
         self.cols = cols.astype(int)
@@ -255,6 +268,13 @@ class DSBCOO(DSBSparse):
         """
         data_stack = self.data[*stack_index]
         block_slice = self._get_block_slice(row, col)
+        if not (isinstance(block_slice.start, int) or (block_slice.start is None)):
+
+            block_slice = slice(
+                int(block_slice.start),
+                int(block_slice.stop),
+                block_slice.step,
+            )
 
         if not self.return_dense:
             if block_slice == slice(None):
@@ -270,6 +290,7 @@ class DSBCOO(DSBSparse):
             + (int(self.block_sizes[row]), int(self.block_sizes[col])),
             dtype=self.dtype,
         )
+
         if block_slice == slice(None):
             # No data in this block, return an empty block.
             return block
@@ -304,7 +325,7 @@ class DSBCOO(DSBSparse):
 
         """
         block_slice = self._get_block_slice(row, col)
-        if block_slice == slice(None):
+        if block_slice.start is None and block_slice.stop is None:
             # No data in this block, nothing to do.
             return
 
@@ -355,6 +376,7 @@ class DSBCOO(DSBSparse):
             raise ValueError("Matrix shapes do not match.")
         if xp.any(self.block_sizes != other.block_sizes):
             raise ValueError("Block sizes do not match.")
+        
         product_rows, product_cols = product_sparsity_pattern(
             sparse.csr_matrix(
                 (xp.ones(self.nnz), (self.rows, self.cols)), shape=self.shape[-2:]
@@ -368,16 +390,20 @@ class DSBCOO(DSBSparse):
             product_rows, product_cols, self.block_sizes
         )
         product = DSBCOO(
-            data=xp.zeros(self.stack_shape + (product_rows.size,), dtype=self.dtype),
+            data=xp.zeros(
+                self.stack_shape + (product_rows.size,), dtype=self.dtype
+            ),
             rows=product_rows[block_sort_index],
             cols=product_cols[block_sort_index],
             block_sizes=self.block_sizes,
             global_stack_shape=self.global_stack_shape,
         )
+
         # TODO: This is a naive implementation. Should be revisited. Same for dsbcsr.
         for stack_index in xp.ndindex(self.data.shape[:-1]):
             temp_product = sparse.csr_matrix(
-                (self.data[stack_index], (self.rows, self.cols)), shape=self.shape[-2:]
+                (self.data[stack_index], (self.rows, self.cols)),
+                shape=self.shape[-2:],
             ) @ sparse.csr_matrix(
                 (other.data[stack_index], (other.rows, other.cols)),
                 shape=other.shape[-2:],
