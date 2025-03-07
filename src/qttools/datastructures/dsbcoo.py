@@ -279,7 +279,10 @@ class DSBCOO(DSBSparse):
         )
         if block_slice.start is None and block_slice.stop is None:
             # No data in this block, return an empty block.
-            return block
+            if self.return_None:
+                return None
+            else:
+                return block
 
         dsbcoo_kernels.densify_block(
             block,
