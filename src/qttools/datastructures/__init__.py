@@ -9,6 +9,10 @@ from qttools.datastructures.routines import (
     btd_matmul,
     btd_sandwich,
 )
+from qttools.datastructures.mp_routines import (
+   mp_bd_matmul,
+   mp_bd_sandwich
+)
 
 __all__ = [
     "DSBSparse",
@@ -18,4 +22,6 @@ __all__ = [
     "btd_sandwich",
     "bd_matmul",
     "bd_sandwich",
+    "mp_bd_matmul",
+    "mp_bd_sandwich",
 ]
