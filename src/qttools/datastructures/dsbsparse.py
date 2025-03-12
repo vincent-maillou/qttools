@@ -2,6 +2,7 @@
 
 import copy
 from abc import ABC, abstractmethod
+from typing import Callable
 
 from mpi4py import MPI
 from mpi4py.MPI import COMM_WORLD as comm
@@ -644,7 +645,7 @@ class DSBSparse(ABC):
         ...
 
     @abstractmethod
-    def symmetrize(self, op=xp.add) -> None:
+    def symmetrize(self, op: Callable[[NDArray, NDArray], NDArray] = xp.add) -> None:
         """Symmetrizes the matrix.
 
         Parameters
