@@ -31,9 +31,12 @@ jobs:
         run: |
           pip install --no-deps --editable .
 
-      - name: Run MPI Tests
+      - name: Run MPI Tests (without dsdbsparse)
         run: |
-          NUMBA_DISABLE_JIT=1 mpiexec -np 3 pytest --only-mpi tests/
+          NUMBA_DISABLE_JIT=1 mpiexec -np 3 pytest --only-mpi -k "not test_dsdbsparse" tests/
+      - name: Run MPI Tests (dsdbsparse only)
+        run: |
+          BLOCK_COMM_SIZE=3 NUMBA_DISABLE_JIT=1 mpiexec -np 9 pytest --only-mpi -k "test_dsdbsparse" tests/
 
       - name: Run Normal Tests and Determine Coverage
         run: |
