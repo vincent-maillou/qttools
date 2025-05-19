@@ -33,7 +33,7 @@ jobs:
 
       - name: Run MPI Tests
         run: |
-          BLOCK_COMM_SIZE=3 NUMBA_DISABLE_JIT=1 mpiexec -np 6 pytest --only-mpi tests/
+          NUMBA_DISABLE_JIT=1 mpiexec -np 6 pytest --only-mpi tests/
 
       - name: Run Normal Tests and Determine Coverage
         run: |
